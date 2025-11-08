@@ -1,0 +1,78 @@
+{
+  "prompts": {
+    "scope1_fuel": {
+      "name": "Scope 1 - Fuel Combustion Extraction",
+      "system_prompt": "You are an expert data extraction assistant specializing in carbon accounting. Extract emissions data from fuel receipts and invoices with high accuracy.",
+      "user_prompt": "Extract the following information from this fuel combustion receipt/invoice:\n\n1. **Supplier Name**: Company that sold the fuel\n2. **Invoice/Receipt Date**: Date on the document (format: YYYY-MM-DD)\n3. **Fuel Type**: Type of fuel (e.g., Diesel, Natural Gas, LPG, Petrol, Heating Oil)\n4. **Consumption Value**: Quantity of fuel purchased (number only)\n5. **Consumption Unit**: Unit of measurement (e.g., litres, kg, m³, kWh)\n6. **Total Cost**: Total amount paid (number only, no currency symbol)\n7. **Currency**: Currency code (e.g., GBP, USD, EUR)\n8. **Combustion Type**: Either 'Stationary' (generators, boilers, heaters) or 'Mobile' (vehicles, equipment)\n9. **Equipment/Vehicle**: Description of equipment or vehicle if mentioned\n10. **Notes**: Any relevant additional information or assumptions\n\nReturn the data as JSON in this exact format:\n{\n  \"supplier_name\": \"string\",\n  \"invoice_date\": \"YYYY-MM-DD\",\n  \"fuel_type\": \"string\",\n  \"consumption_value\": number,\n  \"consumption_unit\": \"string\",\n  \"total_cost\": number,\n  \"currency\": \"string\",\n  \"combustion_type\": \"Stationary\" or \"Mobile\",\n  \"equipment_vehicle\": \"string or null\",\n  \"confidence_score\": 0.0 to 1.0,\n  \"extraction_notes\": \"string\"\n}\n\nIf any field is unclear or missing, use null and note it in extraction_notes. Provide a confidence_score (0-1) indicating your certainty in the extraction.",
+      "expected_scope": 1,
+      "confidence_threshold": 0.7
+    },
+
+    "scope1_waste": {
+      "name": "Scope 1 - Waste Disposal Extraction",
+      "system_prompt": "You are an expert data extraction assistant specializing in waste management and carbon accounting. Extract waste disposal data accurately from invoices and receipts.",
+      "user_prompt": "Extract the following information from this waste disposal invoice/receipt:\n\n1. **Waste Management Company**: Name of the company providing waste services\n2. **Invoice Date**: Date on the document (format: YYYY-MM-DD)\n3. **Waste Type**: Type of waste (e.g., General Waste, Food Waste, Hazardous Waste, Clinical Waste)\n4. **Disposal Method**: How waste was treated (e.g., Landfill, Incineration, Composting, Recycling, Anaerobic Digestion)\n5. **Weight/Volume**: Quantity of waste (number only)\n6. **Unit**: Unit of measurement (e.g., tonnes, kg, m³, litres)\n7. **Total Cost**: Total amount charged (number only)\n8. **Currency**: Currency code (e.g., GBP, USD, EUR)\n9. **Collection Site**: Location where waste was collected\n10. **Notes**: Any relevant additional information\n\nReturn as JSON:\n{\n  \"supplier_name\": \"string\",\n  \"invoice_date\": \"YYYY-MM-DD\",\n  \"waste_type\": \"string\",\n  \"disposal_method\": \"string\",\n  \"weight_volume\": number,\n  \"unit\": \"string\",\n  \"total_cost\": number,\n  \"currency\": \"string\",\n  \"collection_site\": \"string or null\",\n  \"confidence_score\": 0.0 to 1.0,\n  \"extraction_notes\": \"string\"\n}\n\nProvide a confidence_score (0-1) for extraction accuracy.",
+      "expected_scope": 1,
+      "confidence_threshold": 0.7
+    },
+
+    "scope2_electricity": {
+      "name": "Scope 2 - Electricity Bill Extraction",
+      "system_prompt": "You are an expert at extracting data from utility bills for carbon accounting. Focus on electricity consumption data and renewable energy indicators.",
+      "user_prompt": "Extract the following from this electricity bill:\n\n1. **Supplier Name**: Electricity provider/utility company\n2. **Account Number**: Customer account number\n3. **Bill Date**: Date of the bill (format: YYYY-MM-DD)\n4. **Billing Period Start**: Start date of billing period (format: YYYY-MM-DD)\n5. **Billing Period End**: End date of billing period (format: YYYY-MM-DD)\n6. **Total Consumption (kWh)**: Total electricity used in kWh (number only)\n7. **Peak Consumption (kWh)**: Peak/day rate usage if mentioned (number or null)\n8. **Off-Peak Consumption (kWh)**: Off-peak/night rate usage if mentioned (number or null)\n9. **Total Cost**: Total amount due (number only)\n10. **Currency**: Currency code\n11. **Meter Number**: Electricity meter number if shown\n12. **Supply Address**: Address where electricity was supplied\n13. **Is Green Tariff**: true if bill mentions renewable/green energy tariff, false otherwise\n14. **Renewable Percentage**: If mentioned, percentage of renewable energy (0-100)\n\nReturn as JSON:\n{\n  \"supplier_name\": \"string\",\n  \"account_number\": \"string or null\",\n  \"bill_date\": \"YYYY-MM-DD\",\n  \"billing_period_start\": \"YYYY-MM-DD\",\n  \"billing_period_end\": \"YYYY-MM-DD\",\n  \"total_consumption_kwh\": number,\n  \"peak_consumption_kwh\": number or null,\n  \"off_peak_consumption_kwh\": number or null,\n  \"total_cost\": number,\n  \"currency\": \"string\",\n  \"meter_number\": \"string or null\",\n  \"supply_address\": \"string or null\",\n  \"is_green_tariff\": true or false,\n  \"renewable_percentage\": number or null,\n  \"confidence_score\": 0.0 to 1.0,\n  \"extraction_notes\": \"string\"\n}\n\nConfidence score should reflect extraction accuracy.",
+      "expected_scope": 2,
+      "confidence_threshold": 0.75
+    },
+
+    "scope2_heat_steam": {
+      "name": "Scope 2 - Heat/Steam/Cooling Extraction",
+      "system_prompt": "You are an expert at extracting heating, steam, and cooling consumption data from utility bills for carbon accounting.",
+      "user_prompt": "Extract the following from this heating/steam/cooling bill:\n\n1. **Supplier Name**: Service provider name\n2. **Bill Date**: Date of the bill (YYYY-MM-DD)\n3. **Billing Period Start**: Start date (YYYY-MM-DD)\n4. **Billing Period End**: End date (YYYY-MM-DD)\n5. **Service Type**: Specify 'Heat', 'Steam', or 'Cooling'\n6. **Consumption Value**: Total consumption (number only)\n7. **Consumption Unit**: Unit (e.g., kWh, MWh, GJ, Therms, MMBtu)\n8. **Total Cost**: Total amount (number only)\n9. **Currency**: Currency code\n10. **Meter Number**: Meter number if shown\n11. **Supply Address**: Service address\n\nReturn as JSON:\n{\n  \"supplier_name\": \"string\",\n  \"bill_date\": \"YYYY-MM-DD\",\n  \"billing_period_start\": \"YYYY-MM-DD\",\n  \"billing_period_end\": \"YYYY-MM-DD\",\n  \"service_type\": \"Heat\" or \"Steam\" or \"Cooling\",\n  \"consumption_value\": number,\n  \"consumption_unit\": \"string\",\n  \"total_cost\": number,\n  \"currency\": \"string\",\n  \"meter_number\": \"string or null\",\n  \"supply_address\": \"string or null\",\n  \"confidence_score\": 0.0 to 1.0,\n  \"extraction_notes\": \"string\"\n}\n\nProvide confidence score for accuracy.",
+      "expected_scope": 2,
+      "confidence_threshold": 0.75
+    },
+
+    "scope3_logistics": {
+      "name": "Scope 3 - Logistics/Transport Extraction",
+      "system_prompt": "You are an expert at extracting logistics and transportation data from shipping invoices and freight bills for carbon accounting.",
+      "user_prompt": "Extract the following from this logistics/shipping invoice:\n\n1. **Carrier/Supplier**: Transportation company name\n2. **Invoice Date**: Date of invoice (YYYY-MM-DD)\n3. **Transport Mode**: Type (e.g., Road, Rail, Air, Sea, Multimodal)\n4. **Origin**: Starting location/city/country\n5. **Destination**: Ending location/city/country\n6. **Distance**: Distance traveled if mentioned (number, or null)\n7. **Distance Unit**: Unit (e.g., km, miles)\n8. **Weight**: Weight of goods shipped (number)\n9. **Weight Unit**: Unit (e.g., kg, tonnes, lbs)\n10. **Vehicle Type**: Type of vehicle if mentioned (e.g., HGV, Van, Container Ship)\n11. **Total Cost**: Shipping cost (number)\n12. **Currency**: Currency code\n\nReturn as JSON:\n{\n  \"supplier_name\": \"string\",\n  \"invoice_date\": \"YYYY-MM-DD\",\n  \"transport_mode\": \"string\",\n  \"origin\": \"string\",\n  \"destination\": \"string\",\n  \"distance\": number or null,\n  \"distance_unit\": \"string or null\",\n  \"weight\": number,\n  \"weight_unit\": \"string\",\n  \"vehicle_type\": \"string or null\",\n  \"total_cost\": number,\n  \"currency\": \"string\",\n  \"confidence_score\": 0.0 to 1.0,\n  \"extraction_notes\": \"string\"\n}\n\nProvide confidence score.",
+      "expected_scope": 3,
+      "confidence_threshold": 0.7
+    }
+  },
+
+  "validation_rules": {
+    "min_confidence_score": 0.6,
+    "date_format": "YYYY-MM-DD",
+    "max_date_past_years": 5,
+    "max_date_future_days": 30,
+    "required_fields_scope1_fuel": ["supplier_name", "invoice_date", "fuel_type", "consumption_value", "consumption_unit"],
+    "required_fields_scope1_waste": ["supplier_name", "invoice_date", "waste_type", "disposal_method", "weight_volume", "unit"],
+    "required_fields_scope2_electricity": ["supplier_name", "bill_date", "total_consumption_kwh"],
+    "required_fields_scope2_heat_steam": ["supplier_name", "bill_date", "service_type", "consumption_value", "consumption_unit"],
+    "required_fields_scope3_logistics": ["supplier_name", "invoice_date", "transport_mode", "weight", "weight_unit"]
+  },
+
+  "unit_conversions": {
+    "volume_to_litres": {
+      "litres": 1,
+      "gallons_uk": 4.54609,
+      "gallons_us": 3.78541,
+      "m3": 1000
+    },
+    "weight_to_kg": {
+      "kg": 1,
+      "tonnes": 1000,
+      "lbs": 0.453592,
+      "ton_uk": 1016.05,
+      "ton_us": 907.185
+    },
+    "energy_to_kwh": {
+      "kWh": 1,
+      "MWh": 1000,
+      "GJ": 277.778,
+      "Therms": 29.3071,
+      "MMBtu": 293.071
+    }
+  }
+}
