@@ -1,0 +1,184 @@
+{
+  "name": "Carbon Document Processing",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "operation": "executeQuery",
+        "query": "SELECT id, file_path, document_type, scope FROM document_uploads WHERE processing_status = 'pending' LIMIT 1"
+      },
+      "name": "Poll Pending Documents",
+      "type": "n8n-nodes-base.postgres",
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "command": "pdftoppm -jpeg -r 300 -singlefile {{ $json.file_path }} /tmp/document_{{ $json.id }}"
+      },
+      "name": "Convert PDF to Image",
+      "type": "n8n-nodes-base.executeCommand",
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "binaryToText",
+        "options": {
+          "encoding": "base64"
+        }
+      },
+      "name": "Image to Base64",
+      "type": "n8n-nodes-base.convertToFile",
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.GROQ_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "llama-3.2-11b-vision-preview"
+            },
+            {
+              "name": "messages",
+              "value": [
+                {
+                  "role": "system",
+                  "content": "Extract data from utility bills in JSON format"
+                },
+                {
+                  "role": "user",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Extract: supplier, consumption, unit, period, cost"
+                    },
+                    {
+                      "type": "image_url",
+                      "image_url": {
+                        "url": "data:image/jpeg;base64,{{ $json.base64 }}"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Groq Vision API",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.item.json.choices[0].message.content;\nconst data = JSON.parse(response);\n\nreturn {\n  json: {\n    document_id: $node['Poll Pending Documents'].json.id,\n    scope: $node['Poll Pending Documents'].json.scope,\n    supplier: data.supplier,\n    consumption: data.consumption,\n    unit: data.unit,\n    period_start: data.period_start,\n    period_end: data.period_end,\n    total_cost: data.cost,\n    confidence: data.confidence || 0.85\n  }\n};"
+      },
+      "name": "Parse LLM Response",
+      "type": "n8n-nodes-base.code",
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "emissions_scope_{{ $json.scope }}",
+        "columns": "organization_id, facility_id, consumption_kwh, supplier_name, period_start_date, period_end_date, total_cost, source_document_id, confidence_score",
+        "additionalFields": {
+          "organization_id": "{{ $env.ORG_ID }}",
+          "facility_id": "{{ $env.FACILITY_ID }}",
+          "consumption_kwh": "{{ $json.consumption }}",
+          "supplier_name": "{{ $json.supplier }}",
+          "period_start_date": "{{ $json.period_start }}",
+          "period_end_date": "{{ $json.period_end }}",
+          "total_cost": "{{ $json.total_cost }}",
+          "source_document_id": "{{ $json.document_id }}",
+          "confidence_score": "{{ $json.confidence }}"
+        }
+      },
+      "name": "Insert Emission Data",
+      "type": "n8n-nodes-base.postgres",
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE document_uploads SET processing_status = 'completed' WHERE id = {{ $json.document_id }}"
+      },
+      "name": "Update Document Status",
+      "type": "n8n-nodes-base.postgres",
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.confidence }}",
+              "operation": "smaller",
+              "value2": 0.7
+            }
+          ]
+        }
+      },
+      "name": "Check Confidence",
+      "type": "n8n-nodes-base.if",
+      "position": [1250, 500]
+    },
+    {
+      "parameters": {
+        "fromEmail": "alerts@yourcompany.com",
+        "toEmail": "review-team@yourcompany.com",
+        "subject": "Low Confidence Document Processing Alert",
+        "text": "Document ID {{ $json.document_id }} processed with low confidence ({{ $json.confidence }}). Please review manually."
+      },
+      "name": "Send Alert Email",
+      "type": "n8n-nodes-base.emailSend",
+      "position": [1450, 600]
+    }
+  ],
+  "connections": {
+    "Poll Pending Documents": {
+      "main": [[{"node": "Convert PDF to Image", "type": "main", "index": 0}]]
+    },
+    "Convert PDF to Image": {
+      "main": [[{"node": "Image to Base64", "type": "main", "index": 0}]]
+    },
+    "Image to Base64": {
+      "main": [[{"node": "Groq Vision API", "type": "main", "index": 0}]]
+    },
+    "Groq Vision API": {
+      "main": [[{"node": "Parse LLM Response", "type": "main", "index": 0}]]
+    },
+    "Parse LLM Response": {
+      "main": [[
+        {"node": "Insert Emission Data", "type": "main", "index": 0},
+        {"node": "Check Confidence", "type": "main", "index": 0}
+      ]]
+    },
+    "Insert Emission Data": {
+      "main": [[{"node": "Update Document Status", "type": "main", "index": 0}]]
+    },
+    "Check Confidence": {
+      "main": [[{"node": "Send Alert Email", "type": "main", "index": 0}]]
+    }
+  }
+}
